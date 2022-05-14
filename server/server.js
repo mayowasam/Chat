@@ -36,41 +36,44 @@ const io = socket(server, {
 
 // create a global object that contains all the online users 
 global.onlineUsers = new Map()
+let ID = ""
+let availablePeople = []
 
-global.onlineUsersSet = new Set()
-let users= [];
+const addPeople = (availableid, socketsId) => {
+    !availablePeople.some((available) => available.availableid === availableid) && 
+    availablePeople.push({
+        availableid,
+        socketsId
+    })
+} 
+
+
+const removePeople = (socketId) => {
+    availablePeople = availablePeople.filter(available => available.socketsId !== socketId) 
+   
+} 
 
 //start the connection
 io.on("connection", (socket) => {
     global.chatSocket = socket;
     console.log("onlineUsers", onlineUsers);
 
-  
+
     //when user is added
     socket.on("adduser", (userId) => {
         // console.log("adduser", userId);
 
         //push the user to the global online object i created
         onlineUsers.set(userId, socket.id)
+        addPeople(userId, socket.id)
+
         // console.log("onlineUsers added", onlineUsers);
+        io.emit("getUsers", availablePeople)
+ 
 
-        //since idont want a repeated user in my online users to be able to know the count
-        onlineUsersSet.add(userId)
 
     })
 
-    //number of users connected 
-    // io.emit("clientsize", onlineUsersSet.size)
-
-    onlineUsersSet.forEach((val, valAgain, set) => {
-            console.log('users in number', val);
-            if(!users.includes(val)) return users.push(val)
-            return users
-  
-    })
-    // console.log(users);
-    //connected users
-    io.emit("clientsize", users)
 
 
     // when i receive a message i want to get the sender from the global online object
@@ -85,18 +88,46 @@ io.on("connection", (socket) => {
         if (receiverSocket) {
             // socket.to(receiverSocket).emit("msg-received", msg.message)
             // console.log("msg.message", msg.message);
-            socket.to(receiverSocket).emit("msg-received", {message:msg.message, date: msg.date})
+            socket.to(receiverSocket).emit("msg-received", { message: msg.message, date: msg.date })
             // console.log("msg.message", msg.date);
 
         }
     })
 
     socket.on("typing", (msg) => {
-      console.log(msg);
-      const receiverSocket = onlineUsers.get(msg.to)
-      if (receiverSocket) {
-        socket.to(receiverSocket).emit("showtyping",  msg.message )
-    }
+        console.log(msg);
+        const receiverSocket = onlineUsers.get(msg.to)
+        if (receiverSocket) {
+            socket.to(receiverSocket).emit("showtyping", msg.message)
+        }
+    })
+
+
+    socket.on("disconnect", () => {
+        console.log("my socket id has been disconnected ", socket.id);
+        removePeople(socket.id)
+        io.emit("getUsers", availablePeople)
+
+        // onlineUsers.forEach((value, key, map) => {
+
+        //     console.log(`my key ${key}: my val ${value} : my map ${map}`)
+        //     //    onlineUsers.delete(userId)
+
+        // });
+
+        // for (let entry of onlineUsers) { // the same as of recipeMap.entries()
+        //     console.log('entry', entry); // cucumber,500 (and so on)
+        //     let index = entry.map(val => val).indexOf(socket.id)
+        //     console.log('index', index);
+        //     }
+            
+        // let key = [...onlineUsers].find(([key, val]) => val === socket.id)
+        // console.log('key', key && key[0]);
+        // key && onlineUsers.delete(key[0])
+        // io.emit("getUsers", onlineUsers)
+
+      
+
     })
 
 })
