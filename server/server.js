@@ -7,13 +7,18 @@ const cookieParser = require("cookie-parser")
 const userRouter = require('./routes/userRouter')
 const messageRouter = require('./routes/messageRouter')
 const socket = require("socket.io")
+const path = require('path')
 
 // app.use(express.json({ extended: false }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
 app.use(cors({
-    origin: ['http://localhost:3000'],
+    // origin: ['http://localhost:3000'],
+    // origin: `http://localhost:${process.env.PORT}`,
+    // origin: "*",
+    origin: "https://friendsocket.herokuapp.com",
+
     credentials: true
 }))
 
@@ -23,13 +28,24 @@ app.use('/api/auth', userRouter)
 app.use('/api', userRouter)
 app.use('/api', messageRouter)
 
+console.log(path.join(__dirname, "build"));
+
+app.use(express.static(path.join(__dirname, "build")))
+
+app.get("*", (req, res) =>{
+    res.sendFile(path.join(__dirname, "build", "index.html"))
+})
+
 
 const server = app.listen(process.env.PORT, () => console.log(`server listening on port ${process.env.PORT}`))
 
 //initialize socket
 const io = socket(server, {
     cors: {
-        origin: "http://localhost:3000",
+        // origin: "http://localhost:3000",
+        // origin: `http://localhost:${process.env.PORT}`,
+        // origin: "*",
+        origin: "https://friendsocket.herokuapp.com",
         credentials: true
     }
 })
