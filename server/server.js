@@ -18,7 +18,7 @@ app.use(cors({
 }))
 
 app.use(cookieParser())
-app.use(express.static("upload/avatar"))
+app.use(express.static("uploads/"))
 app.use('/api/auth', userRouter)
 app.use('/api', userRouter)
 app.use('/api', messageRouter)
@@ -35,28 +35,32 @@ const io = socket(server, {
 })
 
 // create a global object that contains all the online users 
-global.onlineUsers = new Map()
-let ID = ""
-let availablePeople = []
+// global.onlineUsers = new Map()
 
-const addPeople = (availableid, socketsId) => {
-    !availablePeople.some((available) => available.availableid === availableid) && 
-    availablePeople.push({
-        availableid,
-        socketsId
-    })
-} 
+let availableUsers = [];
 
 
-const removePeople = (socketId) => {
-    availablePeople = availablePeople.filter(available => available.socketsId !== socketId) 
-   
-} 
+const addUsers = (userId, socketId) => {
+    !availableUsers.some((available) => available.userId === userId) &&
+        availableUsers.push({
+            userId,
+            socketId
+        })
+    // console.log('user added');
+}
 
+const getUsers = (userId) => {
+    return availableUsers.find(available => available.userId === userId)
+
+}
+const removeUsers = (socketId) => {
+    availableUsers = availableUsers.filter(available => available.socketId !== socketId)
+
+}
 //start the connection
 io.on("connection", (socket) => {
-    global.chatSocket = socket;
-    console.log("onlineUsers", onlineUsers);
+    // global.chatSocket = socket;
+    // console.log("onlineUsers", onlineUsers);
 
 
     //when user is added
@@ -64,12 +68,12 @@ io.on("connection", (socket) => {
         // console.log("adduser", userId);
 
         //push the user to the global online object i created
-        onlineUsers.set(userId, socket.id)
-        addPeople(userId, socket.id)
+        // onlineUsers.set(userId, socket.id)
+        addUsers(userId, socket.id)
 
         // console.log("onlineUsers added", onlineUsers);
-        io.emit("getUsers", availablePeople)
- 
+        io.emit("getUsers", availableUsers)
+
 
 
     })
@@ -79,34 +83,52 @@ io.on("connection", (socket) => {
     // when i receive a message i want to get the sender from the global online object
     socket.on("sendMessage", (msg) => {
         // console.log("msg friom the client", msg);
-        console.log("onlineUsers", onlineUsers);
-        const receiverSocket = onlineUsers.get(msg.to)
+        // console.log("onlineUsers", onlineUsers);
+        // const receiverSocket = onlineUsers.get(msg.to)
+        const receiverSocket = getUsers(msg.to)
         // const senderSocket =  onlineUsers.get(msg.from)
         // console.log('senderSocket', senderSocket);
         // console.log('receiverSocket', receiverSocket);
         // if the receiver is online i want to snnd him the message he was sent
+
         if (receiverSocket) {
             // socket.to(receiverSocket).emit("msg-received", msg.message)
             // console.log("msg.message", msg.message);
-            socket.to(receiverSocket).emit("msg-received", { message: msg.message, date: msg.date })
+            // socket.to(receiverSocket).emit("msg-received", { message: msg.message, date: msg.date })
+            socket.to(receiverSocket.socketId).emit("msg-received", { message: msg.message, date: msg.date })
             // console.log("msg.message", msg.date);
 
         }
     })
 
-    socket.on("typing", (msg) => {
-        console.log(msg);
-        const receiverSocket = onlineUsers.get(msg.to)
-        if (receiverSocket) {
-            socket.to(receiverSocket).emit("showtyping", msg.message)
-        }
+
+    socket.on("sendNotification", (msg) => {
+        // console.log(msg);
+
+        const receiverSocket = getUsers(msg.to)
+        socket.to(receiverSocket.socketId).emit("receiveNotification", {sender: msg.from, senderName : msg.fromName,  receiver: msg.to,  receiverName: msg.toName, message: msg.message, date: msg.date })
+
+
     })
 
+ 
+
+
+    // socket.on("typing", (msg) => {
+    //     console.log(msg);
+    //     const receiverSocket = onlineUsers.get(msg.to)
+    //     if (receiverSocket) {
+    //         socket.to(receiverSocket).emit("showtyping", msg.message)
+    //     }
+    // })
+
+    // console.log("out",availableUsers)
 
     socket.on("disconnect", () => {
-        console.log("my socket id has been disconnected ", socket.id);
-        removePeople(socket.id)
-        io.emit("getUsers", availablePeople)
+        // console.log("my socket id has been disconnected ", socket.id);
+        removeUsers(socket.id)
+        // console.log("in",availableUsers)
+        io.emit("getUsers", availableUsers)
 
         // onlineUsers.forEach((value, key, map) => {
 
@@ -120,13 +142,13 @@ io.on("connection", (socket) => {
         //     let index = entry.map(val => val).indexOf(socket.id)
         //     console.log('index', index);
         //     }
-            
+
         // let key = [...onlineUsers].find(([key, val]) => val === socket.id)
         // console.log('key', key && key[0]);
         // key && onlineUsers.delete(key[0])
         // io.emit("getUsers", onlineUsers)
 
-      
+
 
     })
 

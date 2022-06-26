@@ -9,7 +9,7 @@ const { join, extname } = require("path")
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         // console.log(join(__dirname, '../upload/avatar'));  
-        cb(null, './upload/avatar')
+        cb(null, 'uploads/')
     },
 
     filename: function async(req, file, cb) {
@@ -20,6 +20,7 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({ storage: storage }).single("avatar")
+// const upload = multer({ dest: 'uploads/' }).single("avatar")
 
 const register = async (req, res) => {
     const { name, email, password } = req.body
@@ -113,7 +114,7 @@ const tokenRefresh = async (req, res) => {
 
         let accessToken = jwt.sign(decodeToken.user, process.env.ACCESS_TOKEN, { expiresIn: "30m" })
         accessToken = `Bearer ${accessToken}`
-        console.log('tokenrefreshacces',accessToken);
+        // console.log('tokenrefreshacces',accessToken);
 
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
@@ -135,9 +136,14 @@ const uploadFile = async (req, res) => {
         if (err instanceof multer.MulterError) {
             res.json({ success: false, message: "multer error" })
         } else if (err) {
-            res.status(500).json({ success: false, message: err })
+            res.status(500).json({ success: false, message: err.message })
 
         }
+
+
+
+    
+        // console.log('req', req);
 
         // console.log('req.file', req.file);
         // console.log(user);
@@ -151,7 +157,8 @@ const uploadFile = async (req, res) => {
         const data = await User.findOne({ _id: req.user.id }).select('-password')
         return res.status(200).json({ success: true, data, message: "profile picture added" })
 
-    })
+     })
+        // console.log('req.file', req.file);
 
 
 
