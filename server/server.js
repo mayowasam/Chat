@@ -8,21 +8,21 @@ const userRouter = require('./routes/userRouter')
 const messageRouter = require('./routes/messageRouter')
 const socket = require("socket.io")
 const path = require('path')
+const fileupload = require("express-fileupload")
 
 // app.use(express.json({ extended: false }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
 app.use(cors({
-    // origin: ['http://localhost:3000'],
-    // origin: `http://localhost:${process.env.PORT}`,
-    // origin: "*",
-    origin: "https://friendsocket.herokuapp.com",
+    origin: ['http://localhost:3000'],
+    // origin: "https://friendsocket.herokuapp.com",
 
     credentials: true
 }))
 
 app.use(cookieParser())
+app.use(fileupload({useTempFiles: true}))
 app.use(express.static("uploads/"))
 app.use('/api/auth', userRouter)
 app.use('/api', userRouter)
@@ -30,22 +30,20 @@ app.use('/api', messageRouter)
 
 console.log(path.join(__dirname, "build"));
 
-app.use(express.static(path.join(__dirname, "build")))
+// app.use(express.static(path.join(__dirname, "build")))
 
-app.get("*", (req, res) =>{
-    res.sendFile(path.join(__dirname, "build", "index.html"))
-})
-
+// app.get("*", (req, res) =>{
+//     res.sendFile(path.join(__dirname, "build", "index.html"))
+// })
+ 
 
 const server = app.listen(process.env.PORT, () => console.log(`server listening on port ${process.env.PORT}`))
 
 //initialize socket
 const io = socket(server, {
     cors: {
-        // origin: "http://localhost:3000",
-        // origin: `http://localhost:${process.env.PORT}`,
-        // origin: "*",
-        origin: "https://friendsocket.herokuapp.com",
+        origin: "http://localhost:3000",
+        // origin: "https://friendsocket.herokuapp.com",
         credentials: true
     }
 })
@@ -122,8 +120,11 @@ io.on("connection", (socket) => {
         // console.log(msg);
 
         const receiverSocket = getUsers(msg.to)
-        socket.to(receiverSocket.socketId).emit("receiveNotification", {sender: msg.from, senderName : msg.fromName,  receiver: msg.to,  receiverName: msg.toName, message: msg.message, date: msg.date })
+        // console.log('receiverSocket', receiverSocket);
+        if (receiverSocket) {
 
+        socket.to(receiverSocket.socketId).emit("receiveNotification", {sender: msg.from, senderName : msg.fromName,  receiver: msg.to,  receiverName: msg.toName, message: msg.message, date: msg.date })
+        }
 
     })
 

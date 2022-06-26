@@ -3,24 +3,34 @@ const Refresh = require('../model/Refresh')
 const jwt = require("jsonwebtoken")
 const handleErrors = require('../utils/Error')
 const bcrypt = require("bcrypt")
-const multer = require("multer")
-const { join, extname } = require("path")
+const cloudinary = require('cloudinary')
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        // console.log(join(__dirname, '../upload/avatar'));  
-        cb(null, 'uploads/')
-    },
 
-    filename: function async(req, file, cb) {
-        // console.log(file);
-        return cb(null, `${file.fieldname}-${Date.now()}${extname(file.originalname)}`)
-    }
 
+// const multer = require("multer")
+// const { join, extname } = require("path")
+
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         // console.log(join(__dirname, '../upload/avatar'));  
+//         cb(null, 'uploads/')
+//     },
+
+//     filename: function async(req, file, cb) {
+//         // console.log(file);
+//         return cb(null, `${file.fieldname}-${Date.now()}${extname(file.originalname)}`)
+//     }
+
+// })
+
+// const upload = multer({ storage: storage }).single("avatar")
+
+
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.API_KEY,
+    api_secret: process.env.API_SECRET,
 })
-
-const upload = multer({ storage: storage }).single("avatar")
-// const upload = multer({ dest: 'uploads/' }).single("avatar")
 
 const register = async (req, res) => {
     const { name, email, password } = req.body
@@ -31,10 +41,10 @@ const register = async (req, res) => {
         const save = await User.create({ name, email, password })
 
         // create a user object to sign the jwt using the id retruned from the db
-    
-        let payload ={
-            
-            user : {
+
+        let payload = {
+
+            user: {
                 id: save._id,
                 name: save.name
             }
@@ -69,9 +79,9 @@ const login = async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.password)
         if (!validPassword) return res.status(400).json({ success: false, message: "incorrect credentials" })
 
-        let payload ={
-            
-            user : {
+        let payload = {
+
+            user: {
                 id: user._id,
                 name: user.name
             }
@@ -129,43 +139,108 @@ const tokenRefresh = async (req, res) => {
     }
 }
 
+// const uploadFile = async (req, res) => {
+
+
+//     upload(req, res, async function (err) {
+//         if (err instanceof multer.MulterError) {
+//             res.json({ success: false, message: "multer error" })
+//         } else if (err) {
+//             res.status(500).json({ success: false, message: err.message })
+
+//         }
+
+
+
+
+//         // console.log('req', req);
+
+//         // console.log('req.file', req.file);
+//         // console.log(user);
+//         // console.log(req.file.filename);
+//         let user = await User.findById({ _id: req.user.id })
+//         let path = `${process.env.URL}${process.env.PORT}/${req.file.filename}`
+//         user.avatar = path
+//         user.isAvatar = true
+//         user = await User.findOneAndUpdate({ _id: req.user.id }, { $set: user }, { new: true })
+//         // console.log(user);
+//         const data = await User.findOne({ _id: req.user.id }).select('-password')
+//         return res.status(200).json({ success: true, data, message: "profile picture added" })
+
+//      })
+//         // console.log('req.file', req.file);
+
+
+
+
+
+//     // res.json ("working")
+// }
+
+const upload = async (file) => {
+    const image = await cloudinary.uploader.upload(
+        file,
+        { folder: "Friends" },
+        result => result
+    );
+    return image
+}
 const uploadFile = async (req, res) => {
+    try {
+
+        if (!req.files) return res.status(400).json({ success: false, message: "no image sent" })
+        console.log(req.files.avatar);
+        const { avatar } = req.files
+        const fileTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        const imageSize = 1024;
+        if (!fileTypes.includes(avatar.mimetype)) return res.status(400).json({ success: false, message: "image type not supported" })
+        if (avatar.size / 1024 > imageSize) return res.status(400).json({ success: false, message: `image should be less than ${imageSize}` })
+        const image = await upload(avatar.tempFilePath)
+        // console.log(image);
+        // res.status(200).json({ message: "Image successfully uploaded", imageUrl: image.url })
 
 
-    upload(req, res, async function (err) {
-        if (err instanceof multer.MulterError) {
-            res.json({ success: false, message: "multer error" })
-        } else if (err) {
-            res.status(500).json({ success: false, message: err.message })
-
-        }
-
-
-
-    
-        // console.log('req', req);
-
-        // console.log('req.file', req.file);
-        // console.log(user);
-        // console.log(req.file.filename);
         let user = await User.findById({ _id: req.user.id })
-        let path = `${process.env.URL}${process.env.PORT}/${req.file.filename}`
-        user.avatar = path
+        user.avatar = image.url
         user.isAvatar = true
         user = await User.findOneAndUpdate({ _id: req.user.id }, { $set: user }, { new: true })
         // console.log(user);
         const data = await User.findOne({ _id: req.user.id }).select('-password')
         return res.status(200).json({ success: true, data, message: "profile picture added" })
 
-     })
-        // console.log('req.file', req.file);
+    } catch (error) {
+        res.status(500).json({ success: false, msg: error.message })
+
+    }
 
 
 
 
 
-    // res.json ("working")
+    //         // console.log('req', req);
+
+    //         // console.log('req.file', req.file);
+    //         // console.log(user);
+    //         // console.log(req.file.filename);
+    //         let user = await User.findById({ _id: req.user.id })
+    //         let path = `${process.env.URL}${process.env.PORT}/${req.file.filename}`
+    //         user.avatar = path
+    //         user.isAvatar = true
+    //         user = await User.findOneAndUpdate({ _id: req.user.id }, { $set: user }, { new: true })
+    //         // console.log(user);
+    //         const data = await User.findOne({ _id: req.user.id }).select('-password')
+    //         return res.status(200).json({ success: true, data, message: "profile picture added" })
+
+    //      })
+    //         // console.log('req.file', req.file);
+
+
+
+
+
+    //     // res.json ("working")
 }
+
 
 
 const logout = async (req, res) => {
@@ -199,7 +274,7 @@ const getUser = async (req, res) => {
         res.json({ user })
 
     } catch (error) {
-        res.status(404).json({ success: false, msg: error.message })
+        res.status(500).json({ success: false, msg: error.message })
     }
 }
 
@@ -213,7 +288,7 @@ const getAllUser = async (req, res) => {
         res.json({ success: true, users })
 
     } catch (error) {
-        res.status(404).json({ success: false, msg: error.message })
+        res.status(500).json({ success: false, msg: error.message })
     }
 }
 module.exports = {

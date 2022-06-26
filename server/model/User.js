@@ -24,7 +24,7 @@ const userSchema = new Schema({
         required: true,
         validate:[(val) =>{
             return passwordReg.test(val)
-        }, 'Minimum of 8 characters must have at least aone letter and one number']
+        }, 'Minimum of 8 characters must have at least one letter and one number']
 
     },
     isAvatar:{
