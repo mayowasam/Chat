@@ -15,8 +15,8 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
 app.use(cors({
-    origin: ['http://localhost:3000'],
-    // origin: "https://friendsocket.herokuapp.com",
+    // origin: ['http://localhost:3000'],
+    origin: "https://friendsocket.herokuapp.com",
 
     credentials: true
 }))
@@ -28,13 +28,13 @@ app.use('/api/auth', userRouter)
 app.use('/api', userRouter)
 app.use('/api', messageRouter)
 
-console.log(path.join(__dirname, "build"));
+// console.log(path.join(__dirname, "build"));
 
-// app.use(express.static(path.join(__dirname, "build")))
+app.use(express.static(path.join(__dirname, "build")))
 
-// app.get("*", (req, res) =>{
-//     res.sendFile(path.join(__dirname, "build", "index.html"))
-// })
+app.get("*", (req, res) =>{
+    res.sendFile(path.join(__dirname, "build", "index.html"))
+})
  
 
 const server = app.listen(process.env.PORT, () => console.log(`server listening on port ${process.env.PORT}`))
@@ -42,8 +42,8 @@ const server = app.listen(process.env.PORT, () => console.log(`server listening 
 //initialize socket
 const io = socket(server, {
     cors: {
-        origin: "http://localhost:3000",
-        // origin: "https://friendsocket.herokuapp.com",
+        // origin: "http://localhost:3000",
+        origin: "https://friendsocket.herokuapp.com",
         credentials: true
     }
 })

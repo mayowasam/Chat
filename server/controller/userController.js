@@ -189,7 +189,7 @@ const uploadFile = async (req, res) => {
     try {
 
         if (!req.files) return res.status(400).json({ success: false, message: "no image sent" })
-        console.log(req.files.avatar);
+        // console.log(req.files.avatar);
         const { avatar } = req.files
         const fileTypes = ['image/jpeg', 'image/png', 'image/jpg'];
         const imageSize = 1024;
